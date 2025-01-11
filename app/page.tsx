@@ -24,7 +24,7 @@ const Home = () => {
 
     return (
         <main>
-            <Image src={ logo } width="650" alt="CrustData Logo"/>
+            <Image src={ logo } width="400" alt="CrustData Logo"/>
             <section className={noMessages ? "" : "populated "}>
                 {noMessages ? (
                     <>
