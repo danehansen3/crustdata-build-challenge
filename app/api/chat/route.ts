@@ -39,32 +39,41 @@ export async function POST(req: Request) {
       });
 
       const documents = await cursor.toArray();
+      
+      // Fix: Change doc.text to doc.chunk
+      const docsMap = documents?.map((doc) => doc.chunk);
+      docContext = docsMap.join('\n');  // Changed to join with newlines for better readability
 
-      const docsMap = documents?.map((doc) => doc.text);
+      console.log("Latest Message:", latestMessage);
+      console.log("Retrieved Documents:", docsMap);
+      console.log("Document Context:", docContext);
 
-      docContext = JSON.stringify(docsMap);
-    } catch  {
+    } catch (error) {
+      console.error("Error retrieving documents:", error);
       return new Response("Internal server error collection", { status: 500 });
     }
 
     const template = {
-        role: "system",
-        content: `
-          You are an AI assistant specialized in answering questions about CrustData's APIs. 
-          Use the context provided below to supplement your knowledge of CrustData's API documentation. 
-          The context contains the latest details about authentication, endpoints, parameters, and usage examples for CrustData's APIs. 
-          If the context doesn't include the information you need, rely on your existing knowledge of APIs and data platforms. 
-          Do not mention the source of your information or whether the context includes specific details. 
-          Format responses using markdown when applicable, and avoid returning images.
-          ----------
-          START CONTEXT
-          ${docContext}
-          END CONTEXT
-          ----------
-          QUESTION: ${latestMessage}
-          ----------
-          `,
-      };
+      role: "system",
+      content: `
+        You are an AI assistant that provides detailed and specific answers about CrustData's APIs directly from the documentation. 
+        You have comprehensive knowledge of CrustData's API documentation and should answer questions completely rather than referring users elsewhere.
+        
+        Always provide specific details, examples, and explanations directly in your responses.
+        Never suggest checking the documentation - you are the direct source of documentation knowledge.
+        If you're not sure about something specific, acknowledge what you do know and what might need clarification.
+        
+        Format responses using markdown when applicable.
+        
+        ----------
+        START CONTEXT
+        ${docContext}
+        END CONTEXT
+        ----------
+        QUESTION: ${latestMessage}
+        ----------
+        `,
+    };
 
     const response = await openai.chat.completions.create({
       model: "gpt-3.5-turbo",
@@ -74,8 +83,9 @@ export async function POST(req: Request) {
 
     const stream = OpenAIStream(response);
     return new StreamingTextResponse(stream);
-    // return new streamText.toDataStreamResponse(stream);
-  } catch {
+
+  } catch (error) {
+    console.error("Error in POST request:", error);
     return new Response("Internal server error embedding", { status: 500 });
   }
 }
